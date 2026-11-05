@@ -346,6 +346,7 @@ final class AppCore {
             }
             paletteCoordinator.onScreenOpening = { [weak self] mode in
                 switch mode {
+                case .emoji: self?.emojiIndex.loadIfNeeded(languages: SystemLanguages.preferred)
                 case .menuSearch: self?.menuSearchCoordinator.load()
                 case .switchWindows: self?.windowSwitchCoordinator.load()
                 case .rooms, .roomWindows: self?.roomCoordinator.load()
@@ -355,7 +356,6 @@ final class AppCore {
             updateCoordinator.applyEnabled()
             calendarCoordinator.applyEnabled()
             Task { await appIndex.refresh() }
-            Task { await emojiIndex.load(languages: SystemLanguages.preferred) }
             currencyRates.start()
             updateChecker.onUpdateAvailable = { [weak self] release in
                 self?.updateCoordinator.presentIfAvailable(release) ?? true

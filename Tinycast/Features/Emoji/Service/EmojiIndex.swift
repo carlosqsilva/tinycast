@@ -42,11 +42,22 @@ final class EmojiIndex {
     /// Bumped on each load, so the key above names the catalog it scored.
     private var revision = 0
 
+    @ObservationIgnored private var loading: Task<Void, Never>?
+
     var isLoaded: Bool { !entries.isEmpty }
+
+    /// Parsed on the picker's first open, so a Mac that never opens it never holds the catalog.
+    func loadIfNeeded(languages: [String]) {
+        guard !isLoaded, loading == nil else { return }
+        loading = Task {
+            await load(languages: languages)
+            loading = nil
+        }
+    }
 
     /// `languages` pick which of the bundle's keyword packs join the catalog's English keywords.
     func load(_ raw: String = EmojiData.raw, languages: [String] = [], bundle: Bundle = .main) async {
-        let (parsed, folded) = await Task.detached(priority: .utility) {
+        let (parsed, folded) = await Task.detached(priority: .userInitiated) {
             let parsed = EmojiCatalog.parse(raw, localized: Self.keywordPacks(for: languages, in: bundle))
             return (parsed, parsed.map(FoldedEntry.init))
         }.value

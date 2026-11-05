@@ -45,6 +45,9 @@ are pure.
   English already has, folds `’` to `'`, and gives katakana a hiragana twin, since an IME shows hiragana
   until conversion. Packs ship for German, Spanish, French, Japanese, Korean, Portuguese, Russian and
   Simplified Chinese.
+- **The catalog loads on the picker's first open, not at launch.** `onScreenOpening` calls
+  `EmojiIndex.loadIfNeeded`, and the screen shows "Loading emoji…" until the parse lands. Kept
+  resident, the index cost ~2 MB on a Mac that never opens the picker.
 - **Search text is folded once, at load.** `EmojiIndex` keeps a `FuzzyMatch.Candidate` for each name
   and keyword, so a keystroke folds only the query. Folding non-ASCII keywords per keystroke made one
   pack cost 5–7× the English-only search.
