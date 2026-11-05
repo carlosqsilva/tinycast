@@ -3,6 +3,9 @@ import SwiftUI
 struct WindowManagementSettingsView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(AppCore.self) private var core
+    @Environment(VisibilityStore.self) private var visibility
+    @Environment(AliasStore.self) private var aliases
+    @Environment(HotKeyManager.self) private var hotKeys
     @State private var editor: WindowLayoutEditRequest?
     @State private var pendingDeletion: WindowLayout?
     @State private var customSizeEdit: CustomWindowSizeEditRequest?
@@ -129,7 +132,10 @@ struct WindowManagementSettingsView: View {
     private var commands: some View {
         ForEach(WindowCommandCatalog.grouped(), id: \.group) { section in
             Section {
-                ForEach(section.commands) { command in
+                LauncherItemsTable(
+                    items: section.commands, isEnabled: settings.windowManagementEnabled,
+                    followsRow: false, visibility: visibility, aliases: aliases, hotKeys: hotKeys
+                ) { command in
                     WindowCommandSettingsRow(
                         command: command, showsInLauncher: settings.windowManagementShowInLauncher)
                 }

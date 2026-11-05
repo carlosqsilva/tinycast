@@ -66,35 +66,20 @@ struct LauncherItemsList: View {
     @Environment(VisibilityStore.self) private var visibility
     @Environment(AliasStore.self) private var aliases
     @Environment(HotKeyManager.self) private var hotKeys
-    @State private var recorderFrame: CGRect?
 
     var body: some View {
         if entries.isEmpty {
             Text(query.isEmpty ? emptyMessage : "No matches for “\(query)”.")
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
-        } else if entries.first?.kind != .application && entries.first?.kind != .appleShortcut {
-            ForEach(entries) { entry in LauncherItemRow(entry: entry) }
         } else {
             // One row holding the table: a `Form` realizes every row it is handed.
             LauncherItemsTable(
-                entries: entries, isEnabled: isEnabled,
-                visibility: visibility, aliases: aliases, hotKeys: hotKeys,
-                recorderFrame: $recorderFrame
-            )
-            .overlay(alignment: .topLeading) { recorderStandIn }
-        }
-    }
-
-    /// The open recorder's anchor can't leave its hosted row, so this republishes its bounds here.
-    @ViewBuilder
-    private var recorderStandIn: some View {
-        if let recorderFrame {
-            Color.clear
-                .frame(width: recorderFrame.width, height: recorderFrame.height)
-                .anchorPreference(key: ShortcutRecorderAnchorKey.self, value: .bounds) { $0 }
-                .position(x: recorderFrame.midX, y: recorderFrame.midY)
-                .allowsHitTesting(false)
+                items: entries, isEnabled: isEnabled,
+                visibility: visibility, aliases: aliases, hotKeys: hotKeys
+            ) { entry in
+                LauncherItemRow(entry: entry)
+            }
         }
     }
 }

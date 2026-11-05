@@ -813,15 +813,16 @@ system-drawn and a pane reads exactly as macOS System Settings does.
   fixed that, but tears a row's `TextField` and checkbox — both `NSView`s — down when the row scrolls
   off and builds them again when one scrolls on, about 7 ms and 4 ms on macOS 27. A fast scrollbar
   drag replaces a screenful of rows per update, so the list froze for 100–400 ms at a time.
-  The Applications and Apple Shortcuts lists therefore use `LauncherItemsTable`, an `NSTableView`
-  filling one Form row; the shorter launcher-item lists use native Form rows. The table keeps a
-  screenful of cells and hands each a new entry, and each cell hosts the
-  SwiftUI `LauncherItemRow`, so a reused row's controls update in place. A hosted row inherits nothing
+  Every launcher-item list and the window-command sections therefore use `LauncherItemsTable`, an
+  `NSTableView` filling one Form row. Native rows carrying an alias field and a recorder are heavy,
+  and the heap they fragment is never returned: System Settings' native rows held 29 MB. The
+  table keeps a screenful of cells and hands each a new item, and each cell hosts the SwiftUI row the
+  caller builds, so a reused row's controls update in place. A hosted row inherits nothing
   from the pane, so the table injects the stores the row reads, and moves Tab on to the next row's
   alias field itself; rows are a fixed 45 pt to match the native Form rows. A negative `.padding`
   doesn't move an AppKit view, so the table hangs 11 pt into the Form row's padding at the top
-  (including the search divider) and 10 pt at the bottom, matching native row origins without
-  adding space after the last row.
+  (including the search divider; 10 pt with `followsRow: false`, when no row sits above it) and
+  10 pt at the bottom, matching native row origins without adding space after the last row.
   `SettingsListMetrics` keeps row icons at one size, and `SettingsScopeRow` renders folder and
   application scope icons consistently across pages.
   A long list whose rows hold no AppKit control can stay a `LazyVStack`.
@@ -872,7 +873,7 @@ shortcut"), live held keys with their reported side, a pending second modifier t
   `.shortcutRecorderPopoverHost()` sits on `SettingsDetailView` — one host above every pane's
   `Form`, and on `OnboardingView`. An overlay on the row would be clipped by the scroll view. A
   recorder in a `LauncherItemsTable` cell sits in its own hosting view, where the preference stops,
-  so the cell reports the recorder's frame and `LauncherItemsSection` republishes it as the anchor.
+  so the cell reports the recorder's frame and `LauncherItemsTable` republishes it as the anchor.
 - **`shortcutPopover.width` is load-bearing.** The callout centres on the recorder only while it
   fits either side of it; wider than that and the clamp kicks in and skews the caret.
   `Tests/callout-test.swift` pins this.
