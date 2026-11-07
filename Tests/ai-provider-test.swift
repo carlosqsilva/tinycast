@@ -48,6 +48,61 @@ struct AIProviderTests {
             "the preamble stays within its per-turn budget")
     }
 
+    static func presetInstructionsReplaceTheUserPrompt() {
+        let cloud = AIModelSelection.codex(model: "gpt-5", effort: nil)
+        expect(
+            AIInstructions.compose(
+                presetInstructions: " Review for SEO. ", preambleEnabled: true, offersChoices: false,
+                model: cloud)
+                == AIPreamble.text + "\n\nReview for SEO.",
+            "a preset's text follows the preamble in place of the user prompt")
+        expect(
+            AIInstructions.compose(
+                presetInstructions: "Review for SEO.", preambleEnabled: false, offersChoices: true,
+                model: cloud)
+                == "Review for SEO.",
+            "with the system prompt off, the preset's text still rides, alone")
+        expect(
+            AIInstructions.compose(
+                presetInstructions: "Review for SEO.", preambleEnabled: true, offersChoices: true,
+                model: .appleIntelligence)
+                == nil,
+            "the on-device model gets no preset")
+    }
+
+    static func presetsPersistAndNeverOverwriteAnUnreadableFile() {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tinycast-presets-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = ChatPresetStore(directory: directory)
+        expect(
+            (try? store.add(ChatPreset(name: " ", instructions: "Review."))) == nil,
+            "a blank name is refused")
+        expect(
+            (try? store.add(ChatPreset(name: "SEO", instructions: " \n"))) == nil,
+            "blank instructions are refused")
+        let saved = try? store.add(
+            ChatPreset(name: "  SEO  ", iconSymbol: " ", instructions: " Review. "))
+        expect(
+            saved?.name == "SEO" && saved?.iconSymbol == nil && saved?.instructions == "Review.",
+            "a saved preset is trimmed")
+        let reopened = ChatPresetStore(directory: directory)
+        reopened.load()
+        expect(reopened.presets == store.presets, "presets survive a relaunch")
+        if let saved { _ = try? store.remove(id: saved.id) }
+        let afterDelete = ChatPresetStore(directory: directory)
+        afterDelete.load()
+        expect(afterDelete.presets.isEmpty, "a deleted preset stays deleted")
+
+        try? Data("not json".utf8).write(to: directory.appendingPathComponent("chat-presets.json"))
+        let unreadable = ChatPresetStore(directory: directory)
+        unreadable.load()
+        expect(
+            !unreadable.isAvailable
+                && (try? unreadable.add(ChatPreset(name: "SEO", instructions: "Review."))) == nil,
+            "an unreadable file is reported, never written over")
+    }
+
     /// A wrong document shape must fail here rather than mid-conversation.
     static func requestBodiesCarryDocuments() {
         let pdf = AIDocument(
@@ -119,6 +174,8 @@ struct AIProviderTests {
             return
         }
         instructionsFollowTheSetting()
+        presetInstructionsReplaceTheUserPrompt()
+        presetsPersistAndNeverOverwriteAnUnreadableFile()
         providerPresetsResolveEndpoints()
         modelCatalogBuildsProviderRequests()
         requestHeadersAreValidated()
@@ -161,7 +218,8 @@ struct AIProviderTests {
         codexElicitationsAreOnlyToolCalls()
         claudeControlFramesAnswerOneTool()
         aGatewayOffersNoneAsItsReasoningEffort()
-        declaredLevelsNeverReachAVendorOrOutliveTheirDeclaration()
+        declaredLevelsNeverOutliveTheirDestination()
+        vendorsTakeTheirOwnDeclaredLevels()
 
         print("\(passes) passed, \(failures) failed")
         if failures > 0 { exit(1) }
@@ -409,7 +467,7 @@ struct AIProviderTests {
         expect(
             AIConnection(provider: .anthropic, baseURL: "https://gateway.example", models: ["m"])
                 .reasoningOptions(for: "m") == nil,
-            "the Anthropic shape is out of scope whatever it points at")
+            "the Anthropic shape never takes the gateway's thinking switch")
 
         let catalogued = AIConnection(
             id: UUID(), provider: .openRouter, baseURL: "https://gateway.example", models: ["m"],
@@ -465,7 +523,7 @@ struct AIProviderTests {
         expect(unset["reasoning_effort"] == nil, "Default still sends no field")
     }
 
-    static func declaredLevelsNeverReachAVendorOrOutliveTheirDeclaration() {
+    static func declaredLevelsNeverOutliveTheirDestination() {
         var gateway = AIConnection(
             provider: .openAI, baseURL: "https://gateway.example/v1", models: ["m"])
         gateway.declareLevels(["low", "high"], for: "m")
@@ -479,6 +537,7 @@ struct AIProviderTests {
 
         var vendor = gateway
         vendor.baseURL = AIProviderKind.openAI.defaultBaseURL
+        vendor.dropDeclaredLevels()
         expect(
             vendor.reasoningOptions(for: "m") == nil,
             "levels declared for a gateway are not offered once the URL is the vendor's own")
@@ -509,11 +568,103 @@ struct AIProviderTests {
             "OpenRouter's catalog is no declaration, so a moved URL keeps it")
 
         expect(gateway.takesDeclaredLevels, "a gateway takes declared levels")
-        expect(!vendor.takesDeclaredLevels, "a vendor URL does not")
+        expect(vendor.takesDeclaredLevels, "and so does a vendor's own URL")
         expect(
             !AIConnection(provider: .openRouter, baseURL: "https://proxy.example/v1")
                 .takesDeclaredLevels,
             "OpenRouter at any URL does not, because its catalog names the levels")
+    }
+
+    static func vendorsTakeTheirOwnDeclaredLevels() {
+        var openAI = AIConnection(provider: .openAI, models: ["m"])
+        openAI.declareLevels(["max", "none", "low", "xhigh", "bogus"], for: "m")
+        expect(
+            openAI.reasoningOptions(for: "m")?.efforts == ["default", "low", "xhigh", "max", "none"],
+            "OpenAI takes its whole ladder, with None only once declared")
+        var anthropic = AIConnection(provider: .anthropic, models: ["m"])
+        anthropic.declareLevels(["minimal", "none", "low", "max"], for: "m")
+        expect(
+            anthropic.reasoningOptions(for: "m")?.efforts == ["default", "low", "max"],
+            "Anthropic has no minimal effort and no None")
+        var gemini = AIConnection(provider: .gemini, models: ["m"])
+        gemini.declareLevels(["xhigh", "high", "none"], for: "m")
+        expect(
+            gemini.reasoningOptions(for: "m")?.efforts == ["default", "high", "none"],
+            "Gemini stops at high and may declare None")
+        expect(gemini.offeredEffort("none", for: "m") == "none", "a declared None is sent")
+
+        let turn = AIRequest(messages: [AIMessage(role: .user, text: "hi")])
+        func body(_ provider: AIProviderKind, effort: String?) -> [String: Any] {
+            AIRequestBody.make(
+                turn,
+                configuration: AIHTTPConfiguration(
+                    provider: provider, baseURL: URL(string: provider.defaultBaseURL)!,
+                    model: "m", effort: effort))
+        }
+        expect(
+            (body(.openAI, effort: "high")["reasoning"] as? [String: String])?["effort"] == "high",
+            "Responses carries the effort in its reasoning object")
+        expect(
+            (body(.anthropic, effort: "max")["output_config"] as? [String: String])?["effort"]
+                == "max",
+            "Anthropic carries it in output_config")
+        let geminiNone = body(.gemini, effort: "none")
+        expect(
+            geminiNone["reasoning_effort"] as? String == "none" && geminiNone["thinking"] == nil,
+            "a vendor's None is its own reasoning_effort, never the gateway switch")
+        expect(
+            body(.openAI, effort: "default")["reasoning"] == nil
+                && body(.anthropic, effort: "default")["output_config"] == nil
+                && body(.gemini, effort: "default")["reasoning_effort"] == nil,
+            "Default sends no field on any vendor")
+
+        let catalog = Data(
+            """
+            {"data":[
+                {"id":"claude-a","display_name":"Claude A","max_tokens":128000,"capabilities":{
+                    "effort":{"supported":true,"max":{"supported":true},
+                              "low":{"supported":true},"xhigh":{"supported":false}}}},
+                {"id":"claude-b","capabilities":{"effort":{"supported":false}}}
+            ]}
+            """.utf8)
+        let models = try? AIModelDiscovery.decode(catalog, shape: .openAI)
+        expect(
+            models?.first?.reasoningOptions?.efforts == ["low", "max"],
+            "Anthropic's catalog names each model's supported efforts in ladder order")
+        expect(
+            models?.last?.reasoningOptions?.efforts == [],
+            "a model without effort support names none")
+        expect(
+            models?.map(\.maxOutputTokens) == [128_000, nil],
+            "and each model's output ceiling where it states one")
+
+        var saved = AIConnection(provider: .anthropic, models: ["claude-a", "claude-b", "claude-c"])
+        saved.declareLevels(["high"], for: "claude-c")
+        saved.adoptCatalog(
+            (models ?? [])
+                + [
+                    .init(
+                        id: "claude-c", name: "C",
+                        reasoningOptions: .init(efforts: ["low"], defaultEffort: nil))
+                ])
+        expect(
+            saved.declaredLevels(for: "claude-a") == ["low", "max"],
+            "a model saved before its catalog was read takes the catalog's levels")
+        expect(saved.reasoningOptions?["claude-b"] == nil, "a model with no effort support takes none")
+        expect(saved.declaredLevels(for: "claude-c") == ["high"], "a reader's own declaration stays")
+        expect(saved.outputLimits == ["claude-a": 128_000], "only a stated ceiling is stored")
+
+        let url = URL(string: AIProviderKind.anthropic.defaultBaseURL)!
+        let known = AIRequestBody.make(
+            turn,
+            configuration: AIHTTPConfiguration(
+                provider: .anthropic, baseURL: url, model: "claude-a", maxOutputTokens: 128_000))
+        expect(known["max_tokens"] as? Int == 128_000, "a known model may answer up to its ceiling")
+        let unknown = AIRequestBody.make(
+            turn, configuration: AIHTTPConfiguration(provider: .anthropic, baseURL: url, model: "x"))
+        expect(
+            unknown["max_tokens"] as? Int == AIRequest.defaultMaxOutputTokens,
+            "an unknown one keeps the cap every Claude model accepts")
     }
 
     static func providerPresetsResolveEndpoints() {
