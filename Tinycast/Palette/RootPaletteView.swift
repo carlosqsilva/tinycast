@@ -313,34 +313,23 @@ struct RootPaletteView: View {
     }
 
     var body: some View {
-        // Resolve the screen once per render, so the flat index can't drift from the rows.
-        let screen = screen
-        let count = screen.rows.count
-        let sel = selection(count: count)
-        // An extension's Form has no rows to count, but ↵ still acts.
-        let showActionGroup =
-            (count > 0 || screen.actsWithoutRows)
-            && screen.hasPrimaryAction(at: sel)
+        // Once per render, so the flat index can't drift; the bar shows no rows to rank.
+        let screen = isCollapsed ? nil : screen
+        let sel = screen.map(selection(in:)) ?? 0
 
         // One header position, so focus survives the swap. See docs/features/palette.md.
         return keyHandlers(
             stateObservers(
                 Group {
-                    if isCollapsed {
-                        Color.clear
-                    } else {
+                    if let screen {
                         screen.body(selection: sel, scroll: scroll)
+                    } else {
+                        Color.clear
                     }
                 }
                 .safeAreaInset(edge: .top, spacing: 0) { header }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
-                    if !isCollapsed {
-                        bottomBar(
-                            pillLabel: screen.primaryActionTitle, showActionGroup: showActionGroup,
-                            formPrimaryShortcut: screen.hidesSearchField && screen.actsWithoutRows,
-                            primaryActionEnabled: screen.isPrimaryActionEnabled(at: sel),
-                            showActions: screen.hasActions(at: sel))
-                    }
+                    if let screen { bottomBar(for: screen, selection: sel) }
                 }
                 // No title bar, so this thin top margin is the only place left to grab the panel.
                 .overlay(alignment: .topLeading) { topDragStrip }
@@ -386,17 +375,23 @@ struct RootPaletteView: View {
         content
             .onChange(of: vm.emojiCategoryFilter) { land() }
             .onChange(of: core.pinnedEmoji.revision) { emojiGridChanged() }
-            .onChange(of: (screen as? EmojiScreen)?.frequentlyUsed) { old, new in
+            .onChange(of: emojiScreen?.frequentlyUsed) { old, new in
                 guard let old, let new else { return }
-                (screen as? EmojiScreen)?.frequentlyUsedChanged(from: old, to: new)
+                emojiScreen?.frequentlyUsedChanged(from: old, to: new)
                 emojiGridChanged()
             }
             .onChange(of: vm.emojiGridColumnsOverride) { emojiGridChanged() }
             .onChange(of: settings.emojiGridColumns) { emojiGridChanged() }
             .onChange(of: vm.emojiGridZoomToken) {
                 guard let zoom = vm.emojiGridZoom else { return }
-                (screen as? EmojiScreen)?.zoom(zoom)
+                emojiScreen?.zoom(zoom)
             }
+    }
+
+    /// Mode-gated like `extensionCommandScreen`: observers read it on every render.
+    private var emojiScreen: EmojiScreen? {
+        guard vm.mode == .emoji else { return nil }
+        return screen as? EmojiScreen
     }
 
     /// Pins and density move cells under the selection, and can change an open Actions menu's rows.
@@ -413,9 +408,8 @@ struct RootPaletteView: View {
             // Every show bumps focusToken so the search field refocuses.
             .onChange(of: vm.focusToken) {
                 resetCompactSelection()
-                searchFocused = !screen.hidesSearchField
+                searchFocused = !hidesSearchField
             }
-            .onChange(of: vm.isVisible) { resetCompactSelection() }
             .onChange(of: vm.isComposing) {
                 if vm.isComposing { resetCompactSelection() }
             }
@@ -423,7 +417,11 @@ struct RootPaletteView: View {
                 compactSelection.reconcile(commands: compactCommands)
             }
             // A preserved screen re-summons as it was left, so a menu must end with the palette.
-            .modifier(PaletteHideObserver { if menuOpen { closeMenus() } })
+            .modifier(
+                PaletteHideObserver {
+                    resetCompactSelection()
+                    if menuOpen { closeMenus() }
+                })
             .onChange(of: vm.query) {
                 resetCompactSelection()
                 if vm.collapseQueryLineBreaks() { return }
@@ -513,7 +511,7 @@ struct RootPaletteView: View {
             }
             // The first show builds this view after `prepare`, so no handler saw that reset.
             .onAppear {
-                searchFocused = !screen.hidesSearchField
+                searchFocused = !hidesSearchField
                 land()
                 focusPendingArgument()
             }
@@ -1004,6 +1002,17 @@ struct RootPaletteView: View {
     /// The Uninstall screen's primary action is destructive, so its pill isn't white.
     private var pillTint: Color {
         vm.mode == .uninstall ? Theme.Colors.destructive : .primary
+    }
+
+    private func bottomBar(for screen: any PaletteScreen, selection sel: Int) -> some View {
+        // An extension's Form has no rows to count, but ↵ still acts.
+        let showActionGroup =
+            (!screen.rows.isEmpty || screen.actsWithoutRows) && screen.hasPrimaryAction(at: sel)
+        return bottomBar(
+            pillLabel: screen.primaryActionTitle, showActionGroup: showActionGroup,
+            formPrimaryShortcut: screen.hidesSearchField && screen.actsWithoutRows,
+            primaryActionEnabled: screen.isPrimaryActionEnabled(at: sel),
+            showActions: screen.hasActions(at: sel))
     }
 
     private func bottomBar(
