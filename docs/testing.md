@@ -191,6 +191,7 @@ If a change touches anything in the right column, the harness on the left is man
 | `LauncherSettingsFileTests` | Launcher settings application — invalid records, partial edits, deferred bundles, shortcut moves and records outside search scopes; isolated preferences and in-memory scan/Carbon effects |
 | `BackupArchiveTests` | all of `Backup/Model/`, plus `Backup/Service/BackupStaging.swift` |
 | `UpdatesTests` | `Updates/Model/` — version precedence, channel filtering, install route, readiness |
+| `BundleIdentifierMigrationTests` | `Migrations/BundleIdentifierMigration.swift` — the id mapping, moving without overwriting, every spelling of a saved path into the old folders, preferences, the login-item flag, the backup and its expiry, the repair of an earlier move |
 | `UpdateCheckTests` | `UpdateCheckStore` — stopping, in-flight cancellation, cached offer suppression, restart and independent manual checking |
 | `SupportTests` | `Support/Model/` — when the support reminder comes due, and a clock moved backwards |
 | `AIProviderTests` | `AI/Model/` and `AISettingsStore` — instruction composition, provider requests and streams, route settings, protocol framing, CLI launch encodings and queued Codex writes across cancellation, timeout and Stop |
@@ -425,8 +426,8 @@ There is no UI test suite, so this is it. Run the core sweep for any change that
 run the scoped section for whatever feature you touched. Budget about five minutes plus three per
 section.
 
-Run against the **Debug channel** (`Tinycast Dev.app`, `com.tinycast.app.dev`). It has its own prefs,
-caches, TCC grants and login item, so this cannot disturb an installed copy.
+Run against the **Debug channel** (`Tinycast Dev.app`, `com.abueammar.tinycast.dev`). It has its own
+prefs, caches, TCC grants and login item, so this cannot disturb an installed copy.
 
 ### Core
 
@@ -736,10 +737,11 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
   exact source; ⌘F finds occurrences in the active note with rendering on and off, and Escape closes
   the find bar before hiding Notes
 - An empty note shows `Start writing…`; ⌘F moves it below the find bar without overlap, and closing Find
-  restores its position. The footer count is right after typing, pasting and undoing
-- With Render Markdown and Show Formatting Bar on, the band under a note holds the character count on
-  the left and the round formatting button on the right; with either setting off, the old centred
-  count footer is back and nothing else moved
+  restores its position. The footer's word and character counts are right after typing, pasting and
+  undoing, and after switching notes
+- With Render Markdown and Show Formatting Bar on, the band under a note holds the word and character
+  counts on the left and the round formatting button on the right; with either setting off, the old
+  centred counts footer is back and nothing else moved
 - The bar starts collapsed, ⌥⌘T and the round button both expand and collapse it, the buttons slide out
   from behind that button, and the state survives switching notes, hiding the window and a relaunch
 - Every bar button applies its formatting, undoes in one step with ⌘Z, and autosaves; clicking keeps the
@@ -751,9 +753,9 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - The heading menu opens above the capsule, aligned to its left edge, shows the current level checked,
   and applies a level on click; it closes on Escape, on a click anywhere in the note window (including
   the heading button itself, which must not reopen it), on typing, on ⌘P, and when another app is clicked
-- At the smallest window size all eleven controls show and the count is hidden, the note's text keeps
+- At the smallest window size all eleven controls show and the counts are hidden, the note's text keeps
   its inset in both states, the heading menu still opens in full above the capsule, and widening the
-  window brings the count back
+  window brings the counts back
 - ⌥⌘C and ⇧⌘B toggle a code block and a quote; with Render Markdown off they do nothing special
 - Settings > Notes > Show Formatting Bar is disabled while Render Markdown is off, Settings search for
   "formatting" lands on it, and a backup round trip restores it
@@ -774,7 +776,7 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Hide a saved checklist, reset its boxes in another editor, and reopen: the boxes match the file
 - Reopen an unchanged note: Undo still works; an external content change starts fresh history
 - Remove the active file while hidden: reopening selects a remaining note or shows the empty state
-- Deleting every note closes the browse list and leaves one clean empty state with no character count;
+- Deleting every note closes the browse list and leaves one clean empty state with no counts;
   Command-N from there creates and selects one note
 - The browse list fades only at its bottom edge and rests opaque once it reaches the end
 - Quitting inside the debounce window saves the last edit
@@ -988,7 +990,7 @@ Debug answers `tinycast-dev://`; use that scheme for every link below.
 - Untick a category on **import** and confirm it did not arrive, while the ticked ones did
 - An image clip round-trips and still renders; the archive can then be deleted without breaking it
 - A file whose `manifest.json` `format` was hand-edited is refused **with a message naming it**
-- Cancelling the save panel leaves nothing in `~/Library/Caches/com.tinycast.app.dev/backup-staging/`
+- Cancelling the save panel leaves nothing in `~/Library/Caches/com.abueammar.tinycast.dev/backup-staging/`
 - **`snippetsEnabled` is not in the exported file**, and importing does not enable snippets
 - Nothing in the extracted tree names a Keychain item, an extension, or an AI conversation
 
@@ -998,11 +1000,11 @@ The realistic storage failure is a store that crashes on an absent file rather t
 Wipe the Dev channel and check that path directly:
 
 ```sh
-rm -rf ~/Library/Caches/com.tinycast.app.dev
-rm -rf "$HOME/Library/Application Support/com.tinycast.app.dev"
+rm -rf ~/Library/Caches/com.abueammar.tinycast.dev
+rm -rf "$HOME/Library/Application Support/com.abueammar.tinycast.dev"
 rm -rf ~/.config/tinycast-dev
-defaults delete com.tinycast.app.dev 2>/dev/null || true
-tccutil reset Accessibility com.tinycast.app.dev 2>/dev/null || true
+defaults delete com.abueammar.tinycast.dev 2>/dev/null || true
+tccutil reset Accessibility com.abueammar.tinycast.dev 2>/dev/null || true
 ```
 
 - Launches with every store directory absent — no crash, no hang; onboarding runs
@@ -1016,5 +1018,5 @@ tccutil reset Accessibility com.tinycast.app.dev 2>/dev/null || true
 - **Every setting shows its intended default.** Walk the panes: this is what catches a broken
   absence-versus-`false` read
 - Quit and relaunch: everything created above persisted
-- Nothing was written outside `com.tinycast.app.dev/`. Channel isolation is not negotiable — a Dev build
-  writing into the stable app's directory is a defect even though the data is disposable
+- Nothing was written outside `com.abueammar.tinycast.dev/`. Channel isolation is not negotiable — a
+  Dev build writing into the stable app's directory is a defect even though the data is disposable
