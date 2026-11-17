@@ -1,4 +1,4 @@
-import { BookOpen, History, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import type { ReactNode } from "react";
 import { nav, site } from "../data/site";
 import { cn } from "../lib/cn";
@@ -38,9 +38,7 @@ export function Nav() {
         <SupportLink />
         <GitHubLink />
         <DiscordLink className="max-md:hidden" />
-        <div className="flex items-center sm:gap-1 md:hidden">
-          <DocsLink />
-          <ChangelogLink />
+        <div className="flex items-center md:hidden">
           <DocsSearchButton />
           <DocsSidebarButton />
         </div>
@@ -71,11 +69,11 @@ export function NavFrame({
         className,
       )}
     >
-      <div className="mx-auto flex h-12 max-w-7xl items-center gap-6 px-4 sm:px-10">
+      <div className="mx-auto flex h-12 max-w-7xl items-center gap-3 px-4 sm:gap-6 sm:px-10">
         <SiteBrand />
         {sections}
         {/* Pulls the last icon's inner padding out, so the edges match the logo's. */}
-        <div className="-mr-2 ml-auto flex items-center sm:gap-1">
+        <div className="-mr-2 ml-auto flex items-center md:gap-0.5">
           {children}
         </div>
       </div>
@@ -91,7 +89,7 @@ export function SupportLink() {
       title="Support Tinycast"
       className="flex h-8 items-center gap-1.5 rounded-full px-2 text-small text-fg-muted transition-colors hover:bg-tint/5 hover:text-fg sm:px-2.5"
     >
-      <SupportIcon size={16} className="text-violet-bright" />
+      <SupportIcon size={18} className="text-violet-bright" />
       <span className="hidden sm:inline">Support</span>
     </Link>
   );
@@ -109,14 +107,13 @@ export async function GitHubLink() {
       title="View source on GitHub"
       className={
         stars
-          ? "flex h-8 items-center justify-center gap-1.5 rounded-full text-fg-muted transition-colors hover:bg-tint/5 hover:text-fg max-sm:w-8 sm:px-2.5"
+          ? "flex h-8 items-center justify-center gap-1 rounded-full px-2 text-fg-muted transition-colors hover:bg-tint/5 hover:text-fg sm:gap-1.5 sm:px-2.5"
           : iconButtonClass
       }
     >
-      <GitHubLogo size={16} />
+      <GitHubLogo size={18} />
       {stars && (
-        // Too wide for a phone bar with six icons; the drawer's tile still shows it.
-        <span className="inline-flex items-center gap-1 font-mono text-caption max-sm:hidden">
+        <span className="inline-flex items-center gap-1 font-mono text-caption">
           <Star size={12} aria-hidden="true" />
           {stars}
         </span>
@@ -135,33 +132,7 @@ export function DiscordLink({ className }: { className?: string }) {
       title="Join the Discord"
       className={cn(iconButtonClass, className)}
     >
-      <DiscordLogo size={16} />
+      <DiscordLogo size={18} />
     </a>
-  );
-}
-
-export function ChangelogLink() {
-  return (
-    <Link
-      href="/changelog"
-      aria-label="Changelog"
-      title="Changelog"
-      className={iconButtonClass}
-    >
-      <History size={16} />
-    </Link>
-  );
-}
-
-export function DocsLink() {
-  return (
-    <Link
-      href="/docs"
-      aria-label="Documentation"
-      title="Documentation"
-      className={iconButtonClass}
-    >
-      <BookOpen size={16} />
-    </Link>
   );
 }

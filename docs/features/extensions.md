@@ -146,7 +146,7 @@ than shared-memory coordination. If native shared buffers are available, both gl
 | `Model/ExtensionRefreshPolicy.swift`          | background-refresh decisions: interval parsing, due dates, backoff                                         |
 | `Model/ExtensionLaunchType.swift`             | `userInitiated` / `background`, mirroring `@raycast/api` `LaunchType`                                      |
 | `Model/RenderNode.swift`                      | the decoded render tree (`RenderTree` / `RenderNode` / `RenderValue`)                                      |
-| `Model/ExtensionAppearance.swift`             | the per-extension icon override and its tint palette                                                       |
+| `Model/ExtensionAppearance.swift`             | the per-extension icon override: a symbol                                                                   |
 | `Service/ExtensionAppearanceStore.swift`      | where those overrides persist                                                                              |
 | `Service/SymbolCatalog.swift`                 | the SF Symbol list read from `CoreGlyphs.bundle`                                                           |
 | `UI/ExtensionScreen.swift`                    | flattens one screen into the palette's row order                                                           |
@@ -587,6 +587,14 @@ A lookup that fails is skipped rather than reported, so a flaky network never in
 Updating is a store install of that listing, which replaces only the extension's directory — its
 preferences, storage and icon carry over.
 
+## iCloud Sync
+
+[iCloud Sync](icloud-sync.md) carries the same tracked set — store installs only — to the user's
+other Macs, found again by handle and name, and installs one only where Extensions is on. An
+uninstall reaches every Mac syncing extensions, and its confirmation says so. Text, checkbox and
+dropdown preferences travel; passwords, file and folder paths, local storage and OAuth tokens stay.
+Which commands show in the launcher stays per Mac, as in Raycast.
+
 ## Shortcuts
 
 A global shortcut binds to a **command**, not to an extension — a shortcut has to land on one thing to
@@ -978,15 +986,17 @@ Change the number only against a rendered strip of real icons; it means nothing 
 `data:` payload decodes in either encoding — and one naming a `raycast-*` colour draws ink, in the
 stroke that appearance calls for.
 
-- `ExtensionAppearance` (symbol + `ExtensionTint`) is stored per extension by manifest name in
+- `ExtensionAppearance` (a symbol) is stored per extension by manifest name in
   `ExtensionAppearanceStore`, and applies to **every command** of that extension — the same inheritance
   Raycast has when a command declares no icon of its own.
-- `ExtensionManager.publishLauncherEntries` resolves it into each `AppEntry`; `setAppearance`
-  re-publishes immediately, so rows change without waiting for a rescan.
-- 18 tints, pinned sRGB rather than system colours: tiles rasterize off the main thread, where a dynamic
-  colour would resolve against whatever appearance that thread sees. Pinning also makes the picker's
-  SwiftUI preview and the drawn bitmap the same colour by construction.
-- "Use Original" clears the override. Choices ride along in a settings backup.
+- `ExtensionManager.publishLauncherEntries` resolves it into each `AppEntry` as an `EntryIcon.tile` in
+  the Extensions tab's tint: colour by feature, the [icon pack](../ui.md#icon-pack) rule for every
+  user-made item, so the user picks a symbol and never a colour. `setAppearance` re-publishes
+  immediately, so rows change without waiting for a rescan.
+- The pane's "Launcher icon" preview draws `SymbolTile`, which restates the pack tile inside the feature
+  rather than borrowing `IconTile`. The picker lists plain symbols, as every icon picker does.
+- "Use Original" clears the override. Choices ride along in a settings backup; a colour an older
+  release stored is ignored on read.
 
 ### Where the symbols come from
 

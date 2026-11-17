@@ -93,11 +93,9 @@ second case, and it is why `ClipboardManager.fileURLs(on:volatileRoots:)` and `P
 each take the thing they act on as a parameter: a seam that exists so the harness never has to reach
 for the shared board. Its scratch tree lives under `temporaryDirectory`, which is itself a volatile
 root, so the cases about *reading* files inject an empty root list and the one case about durability
-is the one that runs against the shipped roots. Both file URL and legacy filename boards also cover
-the capture cap, exact ordering, rejected prefixes, duplicates and symlinks using private fixtures.
-The reader cases add the limit boundaries, the predicate call counts and modern/legacy precedence.
-Note that macOS synthesizes `public.file-url` items for any `NSFilenamesPboardType` write, so a
-legacy fixture still exercises the modern representation and the fallback branch stays unreached.
+is the one that runs against the shipped roots. File URL boards also cover the capture cap, exact
+ordering, rejected prefixes, duplicates and symlinks using private fixtures. The reader cases add
+the limit boundaries and the predicate call counts.
 
 Never join a compile to its run with `&&` in a `set -e` script. `set -e` is specified to ignore a
 failing command in a non-final AND-OR list member, so `swiftc … && /tmp/x` swallows a compile error and
@@ -185,13 +183,13 @@ If a change touches anything in the right column, the harness on the left is man
 | `IconCacheTests` | `Platform/Images/IconCache.swift` — row sizing at 1×/2×, warm reuse, stamp and style invalidation, bitmap release, fitted geometry across all 256 alpha values, and that a row icon draws identically to the 96px one |
 | `EntryIconTests` | `EntryIcon` — that each case draws, caches and prints apart from the others, and that a moved `FileIconStamp` retires the bitmap decoded before it |
 | `TextDiffTests` | `QuickActions/Model/TextDiffEngine.swift` — exact chunks, coalescing, Unicode, ties, token-cap boundaries and fast paths |
+| `CloudSyncTests` | `CloudSync/Model/` and `Settings/Model/SettingsFileKey.swift` — record names, the ledger's diff, last-write-wins, edit-beats-delete, echo-free apply and re-fetch skip, category merge, setting scope (every feature switch, folder and device stays local) and entry-key spelling |
 | `SettingsBackupTests` | `Settings/AppSettingsKey.swift`, `Backup/Model/SettingsBackupCoverage.swift` |
 | `SettingsFileTests` | `Settings/Model/` and `Settings/Service/` — key paths, value tokens, the printer and parser, and the repository's import, replace, save, reload and symlink handling on a scratch folder |
 | `WindowFileTests` | `WindowManagement/Model/WindowManagementFileFormat.swift` — command shortcuts, custom sizes, layouts and rooms as settings.json spells them, hand edits and bad records |
 | `LauncherSettingsFileTests` | Launcher settings application — invalid records, partial edits, deferred bundles, shortcut moves and records outside search scopes; isolated preferences and in-memory scan/Carbon effects |
 | `BackupArchiveTests` | all of `Backup/Model/`, plus `Backup/Service/BackupStaging.swift` |
 | `UpdatesTests` | `Updates/Model/` — version precedence, channel filtering, install route, readiness |
-| `BundleIdentifierMigrationTests` | `Migrations/BundleIdentifierMigration.swift` — the id mapping, moving without overwriting, every spelling of a saved path into the old folders, preferences, the login-item flag, the backup and its expiry, the repair of an earlier move |
 | `UpdateCheckTests` | `UpdateCheckStore` — stopping, in-flight cancellation, cached offer suppression, restart and independent manual checking |
 | `SupportTests` | `Support/Model/` — when the support reminder comes due, and a clock moved backwards |
 | `AIProviderTests` | `AI/Model/` and `AISettingsStore` — instruction composition, provider requests and streams, route settings, protocol framing, CLI launch encodings and queued Codex writes across cancellation, timeout and Stop |
@@ -317,9 +315,9 @@ against the engine, pass a token count, a workload (`dense`, `sparse`, `equal`, 
 iteration count for timings, or `--probe` to diff every chunk between two builds.
 
 `Tests/ClipboardFilePerformanceTests.swift` measures file capture with private pasteboards and temporary
-fixtures. It reports wall and process CPU time as JSON for modern and legacy formats, including
-32/1,000/10,000 durable files, rejected-input controls and an uncapped-reader control that guards
-the attachment path against the bounded reader it now delegates to. Compare three fresh processes
+fixtures. It reports wall and process CPU time as JSON, including 32/1,000/10,000 durable files,
+rejected-input controls and an uncapped-reader control that guards the attachment path against the
+bounded reader it now delegates to. Compare three fresh processes
 per build with identical `-O` settings:
 
 ```sh
@@ -490,8 +488,9 @@ prefs, caches, TCC grants and login item, so this cannot disturb an installed co
   move the menu highlight. Escape clears a non-empty query, then closes the menu on the next press
 - The bottom-left app menu also searches from its bottom band; every header menu — including Emoji
   categories, File Search filters and extension dropdowns — searches from its top band
-- The app menu has no divider above Quit; Quit opens partially visible above the search band and
-  scrolls fully into view with the pointer or arrow keys. Filtering to fewer rows shrinks the menu
+- The app menu opens at the ⌘K Actions menu's height with Check for Updates and Changelog, a
+  separator, About and Support, a separator, then Settings partially visible; Settings and Quit
+  scroll fully into view with the pointer or arrow keys. Filtering to fewer rows shrinks the menu
 - A long menu opens with unchanged row insets; while scrolling, rows can reach the panel edges
 - A click in the palette but outside its menu closes only the menu; a click outside the palette
   closes both, regardless of the menu query; the next summon accepts typing immediately
@@ -983,6 +982,8 @@ Debug answers `tinycast-dev://`; use that scheme for every link below.
   no background check or update offer occurs, and Check for Updates still works. Re-enable it:
   checks resume. Settings search for "updates" reveals the toggle; settings.json edits and a backup
   round trip preserve the choice.
+- Settings → About shows the update row: "Last checked" with a relative time after a check, "Checking
+  for updates…" while Check Now runs, and the local-build line in a Dev build
 - Every pane renders and the sidebar switches without flicker
 - A feature switch takes effect in the launcher immediately; every setting survives relaunch
 - Export produces a `.tinycast`; import applies it and reports a per-category summary
@@ -993,6 +994,26 @@ Debug answers `tinycast-dev://`; use that scheme for every link below.
 - Cancelling the save panel leaves nothing in `~/Library/Caches/com.abueammar.tinycast.dev/backup-staging/`
 - **`snippetsEnabled` is not in the exported file**, and importing does not enable snippets
 - Nothing in the extracted tree names a Keychain item, an extension, or an AI conversation
+
+### iCloud Sync
+
+Needs a Dev build signed with `Config/Local.xcconfig` ([signing.md](signing.md)). A second macOS user
+signed in to the same Apple ID is a second Mac on one machine.
+
+- A self-signed contributor build shows "iCloud Sync needs a signed release build" and nothing crashes
+- Turning sync on asks first, then shows "Setting up…" and settles on "Up to date"; the counts match
+- On the second Mac: notes, snippets, quicklinks, a hotkey, an alias, a favorite and an appearance
+  change arrive; no note is rewritten or renamed when both Macs already held it
+- Edit the same note on both while offline: the later edit wins; an open note with unsaved typing
+  keeps it and uploads it
+- Delete a note on one Mac: it moves to the Trash on the other
+- Install a store extension on one Mac: it installs on the other only once Extensions is on there;
+  uninstalling removes it from both
+- A clashing hotkey keeps each Mac's own choice and is not bounced back
+- Unchecking a category stops it in both directions; checking it again merges rather than deletes
+- Remove the other Mac: it turns sync off there and says why
+- Delete iCloud Data turns sync off on every Mac and leaves their data
+- Signing out of iCloud shows the reason; signing back in resumes on its own
 
 ### Clean install
 

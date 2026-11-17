@@ -1,6 +1,6 @@
 # Updates
 
-By default, Tinycast checks GitHub Releases once a day and offers the newest release for its own
+By default, Tinycast checks GitHub Releases twice a day and offers the newest release for its own
 channel in a pill in the palette, then installs it at the next relaunch or quit. There is no Sparkle
 and no appcast: the release feed the website already reads is the feed the app reads.
 
@@ -86,12 +86,6 @@ the header row. It cannot reuse `ExtensionToastPill`, because extension views st
 | `com.abueammar.tinycast.beta` | `.beta`        | prereleases |
 | anything else                 | `.development` | nothing     |
 
-Until 2027-05-13 each release also carries a `-Handoff` zip, listed before its own, for copies from
-before the bundle id moved from `com.tinycast.app`. Those copies refuse any other bundle id and take
-the first zip, so the handoff wears their id and carries this app inside; `ReleaseFeed` never offers it
-to a copy that has moved. See [migrations.md](../migrations.md) and
-[release.md](../release.md#the-bundle-id-handoff).
-
 `AppVersion` parses `MAJOR.MINOR.PATCH` and `MAJOR.MINOR.PATCH-beta.N` with semver precedence: a
 prerelease sorts below the release it leads to, and `beta.10` above `beta.9`. Everything else parses
 to nil, so an off-shape tag can never be offered as an update. A release whose tag disagrees with
@@ -111,9 +105,11 @@ self-rescheduling pump, and one atomic JSON file.
 ```
 
 It holds `lastCheckedAt`, the newest release seen, and the version just installed. Freshness is
-measured from `lastCheckedAt`, so relaunching never re-asks GitHub; the interval is 24 h, dropping to
+measured from `lastCheckedAt`, so relaunching never re-asks GitHub; the interval is 12 h, dropping to
 2 h after a failed attempt, and the first check waits 30 s so it never lands in the login rush. The
-request carries a `User-Agent`, which the GitHub API rejects requests without.
+wait carries a 15 s tolerance so macOS can coalesce the wake with other timers. A check holds the
+~200 KB response only while parsing it, and the sleeping task holds nothing. The request carries a
+`User-Agent`, which the GitHub API rejects requests without.
 
 Disabling automatic checks takes effect immediately and survives relaunch. Turning them back on
 resumes the same schedule, with the startup delay and cached check time respected. Check for Updates
@@ -125,7 +121,13 @@ than what is running, unless an update is already downloading or waiting for qui
 update instead, since offering it again would discard the download or the staged copy.
 
 Check for Updates reports in a HUD: progress while it asks, then up to date or unreachable. When there
-is an update, it opens the palette so the pill shows.
+is an update, it opens the palette so the pill shows. It is reachable from the palette's app menu,
+the menu bar menu, the launcher, and Settings → About.
+
+Settings → About gives it a row of its own with a Check Now button and one status line: a local
+build says it does not update; otherwise the line reads checking, the newer version on offer, "Last
+checked" with a relative time that ticks once a minute, or not checked yet. It reads
+`UpdateCoordinator`'s status properties, never `stage`.
 
 ## Installing
 
