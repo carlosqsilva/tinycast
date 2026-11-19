@@ -3649,16 +3649,6 @@
         }
       }
     },
-    "%@%@%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@%2$@%3$@"
-          }
-        }
-      }
-    },
     "%@, %@ layout" : {
       "localizations" : {
         "de" : {
@@ -57468,58 +57458,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "名称以点开头的文件和文件夹，例如 ~/.config。"
-          }
-        }
-      }
-    },
-    "Fill in the template fields." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fülle die Vorlagenfelder aus."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rellena los campos de la plantilla."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Renseignez les champs du modèle."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "テンプレートのフィールドを入力してください。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "템플릿 필드를 입력하십시오."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preencha os campos do modelo."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Заполните поля шаблона."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请填写模板栏位。"
           }
         }
       }
@@ -144684,58 +144622,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS 隔离了下载的 App，Tinycast 无法清除此标记。"
-          }
-        }
-      }
-    },
-    "macOS refused to remap the Dictation key" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS hat die Neubelegung der Diktattaste abgelehnt"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS rechazó la reasignación de la tecla de dictado"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS a refusé de réaffecter la touche de dictée"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOSが音声入力キーの再割り当てを拒否しました"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS가 받아쓰기 키 재매핑을 거부함"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O macOS recusou o remapeamento da tecla de Ditado"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS отказалась переназначить клавишу Диктовки"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS 拒绝重新映射听写键"
           }
         }
       }
