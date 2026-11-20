@@ -30,7 +30,6 @@ final class AppCore {
         DictationModelStore(idleRelease: settings.dictationIdleRelease)
     @ObservationIgnored private(set) lazy var hyperKey = HyperKeyManager(
         settings: settings, hotKeys: hotKeys)
-    @ObservationIgnored private lazy var dictationKey = DictationKeyManager(hotKeys: hotKeys)
     let windowMover = WindowMover()
     let spaceSwitcher = SpaceSwitcher()
     let inputSourceSwitcher = InputSourceSwitcher()
@@ -363,7 +362,6 @@ final class AppCore {
             supportReminders.start()
 
             hyperKey.healthTicker = healthTicker
-            dictationKey.healthTicker = healthTicker
             hotKeys.modifierTapMonitor.healthTicker = healthTicker
             snippetListener.healthTicker = healthTicker
 
@@ -436,11 +434,10 @@ final class AppCore {
                 windowRoomIDs: Set(rooms.rooms.map(\.id)),
                 customWindowSizeIDs: Set(customWindowSizes.sizes.map(\.id)),
                 quickActionIDs: Set(customQuickActions.actions.map(\.id)))
+            trackHotKeyAllowance()
             // After `hotKeys.start`: Secure Input equivalents are built from the loaded bindings.
             hyperKey.onProblem = { [weak self] in self?.showMessage($0, tone: .danger) }
             hyperKey.start()
-            dictationKey.onProblem = { [weak self] in self?.showMessage($0, tone: .danger) }
-            dictationKey.start()
 
             snippetsStore.onSnapshot = { [weak self] snapshot in
                 guard let self else { return }
@@ -526,10 +523,24 @@ final class AppCore {
 
     func allowsHotKeyAction(_ action: HotKeyAction) -> Bool {
         guard visibility.allowsHotKey(action) else { return false }
-        if action == .dictation { return settings.dictationEnabled }
         // A disabled feature drops its commands from the launcher; their shortcuts go too.
-        guard case .command(let id) = action else { return true }
-        return appIndex.isCommandEnabled(id)
+        switch action {
+        case .dictation: return settings.dictationEnabled
+        case .command(let id): return appIndex.isCommandEnabled(id)
+        case .windowCommand, .customWindowSize, .windowLayout, .windowRoom:
+            return settings.windowManagementEnabled
+        case .customCommand(let id):
+            return settings.customCommandsEnabled && customCommands.command(id: id)?.isEnabled == true
+        // Snippets load after `start()`; observing `snippets` re-registers them once they arrive.
+        case .snippet(let id):
+            return settings.snippetsEnabled && snippetsStore.record(id: id)?.snippet.isEnabled == true
+        case .quickAction: return settings.quickActionsEnabled
+        case .quicklink(let id):
+            return settings.quicklinksEnabled && quicklinks.quicklink(id: id)?.isEnabled == true
+        case .appleShortcut: return settings.appleShortcutsEnabled
+        case .extensionCommand: return settings.extensionsEnabled
+        case .togglePalette, .app, .settingsPane, .systemAction: return true
+        }
     }
 
     /// The store-backed half of the conflict message; `HotKeyManager` names the catalogs itself.
@@ -616,9 +627,8 @@ final class AppCore {
         settingsFile?.flush()
         cloudSyncCoordinator.flush()
         clipboardTextIndexer?.stop()
-        // HID remaps first: they outlive the process.
+        // Caps Lock first: its remap is the one teardown that outlives the process.
         hyperKey.prepareForTermination()
-        dictationKey.prepareForTermination()
         windowLayoutCoordinator.prepareForTermination()
         roomCoordinator.prepareForTermination()
         inputSourceSwitcher.endSession()
@@ -872,6 +882,15 @@ final class AppCore {
                 self.track(store, reads, reproject: reproject)
                 reproject(self)
             }
+        }
+    }
+
+    /// Re-arms on whatever `allowsHotKeyAction` read: feature switches, visibility, dictation.
+    private func trackHotKeyAllowance() {
+        withObservationTracking {
+            hotKeys.applyAllowance()
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.trackHotKeyAllowance() }
         }
     }
 

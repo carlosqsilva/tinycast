@@ -604,6 +604,7 @@ run slow SnippetsTests     Tinycast/Platform/NotificationToken.swift \
                            Tinycast/Features/Snippets/Model/*.swift \
                            Tinycast/Features/Snippets/Service/*.swift $SYNC \
                            Tinycast/Features/Snippets/UI/SnippetEditorSession.swift \
+                           Tinycast/Features/Snippets/UI/SnippetArgumentsState.swift \
                            Tinycast/Features/TextInjection/Service/*.swift
 run NotesTests             Tinycast/Platform/Signposts.swift \
                            $L/SearchRelevance.swift \
@@ -681,6 +682,7 @@ run CloudSyncTests         Tinycast/Features/CloudSync/Model/*.swift \
 run SettingsBackupTests    Tinycast/Features/Settings/AppSettingsKey.swift \
                            Tinycast/Features/Backup/Model/SettingsBackupCoverage.swift
 run HyperKeyEngineTests    Tinycast/Features/HotKeys/Model/HyperKeyEngine.swift \
+                           Tinycast/Features/HotKeys/Model/PhysicalHyperKeyPress.swift \
                            Tinycast/Features/HotKeys/Model/HyperKey.swift \
                            Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
                            Tinycast/Features/HotKeys/Model/ModifierKey.swift \
@@ -693,15 +695,6 @@ run HyperKeyTests          Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
                            Tinycast/Features/HotKeys/Service/KeyboardRemapper.swift \
                            Tinycast/Features/HotKeys/Service/RemapInstanceLock.swift \
                            Tests/HyperKeyFixtures.swift
-run DictationKeyTests      Tinycast/Features/HotKeys/Model/HIDKeyMapping.swift \
-                           Tinycast/Features/HotKeys/Model/HyperKeyConflictPolicy.swift \
-                           Tinycast/Features/HotKeys/Service/KeyboardRemapper.swift \
-                           Tinycast/Features/HotKeys/Service/RemapInstanceLock.swift \
-                           Tinycast/Features/HotKeys/Service/DictationKeyManager.swift \
-                           Tinycast/Platform/HealthTicker.swift \
-                           Tinycast/Platform/NotificationToken.swift \
-                           Tests/HyperKeyFixtures.swift \
-                           Tests/DictationKeyFixtures.swift
 run HotKeyDispatchTests    Tinycast/Features/HotKeys/Model/DoubleTapModifier.swift \
                            Tinycast/Features/HotKeys/Model/ModifierKey.swift \
                            Tinycast/Features/HotKeys/Model/HotKeyBinding.swift \
