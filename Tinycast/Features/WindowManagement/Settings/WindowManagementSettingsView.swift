@@ -6,6 +6,7 @@ struct WindowManagementSettingsView: View {
     @Environment(VisibilityStore.self) private var visibility
     @Environment(AliasStore.self) private var aliases
     @Environment(HotKeyManager.self) private var hotKeys
+    @Environment(MainAppLink.self) private var mainApp
     @State private var editor: WindowLayoutEditRequest?
     @State private var pendingDeletion: WindowLayout?
     @State private var customSizeEdit: CustomWindowSizeEditRequest?
@@ -56,7 +57,7 @@ struct WindowManagementSettingsView: View {
                 title: Text("Delete \u{201C}\(layout.name)\u{201D}?"),
                 message: Text("Its global shortcut and launcher references go with it."),
                 primaryButton: .destructive(Text("Delete")) {
-                    core.windowLayoutCoordinator.deleteWindowLayout(id: layout.id)
+                    mainApp.send(.deleteWindowLayout(layout.id))
                 },
                 secondaryButton: .cancel())
         }
