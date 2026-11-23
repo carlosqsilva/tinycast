@@ -203,9 +203,9 @@ these invariants:
 
 - The search field sits at **one structural position, always**. It is never moved inside an `if`:
   flipping the branch tears down its field editor, which drops first responder mid-navigation. Only
-  its _width_ changes: it is sized to its own text so the chips sit right after it, as they do in
-  Raycast. That width is a ceiling rather than a size, and the spacer after the strip is given room
-  last, so a long query is squeezed before the strip can run into the screen's own header controls.
+  its _width_ changes: it is sized to its own text so the chips sit right after it. That width is a
+  ceiling rather than a size, and the spacer after the strip is given room last, so a long query is
+  squeezed before the strip can run into the screen's own header controls.
 - **`Placement` is what a strip does to the field beside it.** `.afterQuery` (root search) drops the
   prompt and squeezes the field to the typed text, so the chips follow what was typed and a glyph
   anchors them to the row. `.besideSearchField` (a screen of its own, where that row is already
@@ -608,7 +608,7 @@ Most ⌘/⌃ chords reach SwiftUI's `onKeyPress` fine. Several kinds do not. All
 handled in `PalettePanel.sendEvent` before `super` hands the event to the responder chain:
 
 - **A bare backspace**: the field editor consumes it as an edit (`onBareBackspace`).
-- **Chords with no main menu item**: ⌘, and ⌘w, which an app with a menu bar would never see here.
+- **Chords with no main menu item**: ⌘w, which an app with a menu bar would never see here.
 - **The physical number-row slots.** `FavoriteSlots` matches ⌘1…⌘0 by key code before fixed command
   chords, then publishes the resolved position to the active screen. Only the launcher and clipboard
   screens intercept these slots; other screens keep their own ⌘-number shortcuts. The compact bar

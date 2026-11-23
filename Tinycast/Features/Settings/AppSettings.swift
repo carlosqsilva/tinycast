@@ -278,6 +278,10 @@ final class AppSettings {
         didSet { defaults.set(animationsEnabled, forKey: Key.animationsEnabled.rawValue) }
     }
 
+    var iconStyle: IconStyle {
+        didSet { defaults.set(iconStyle.rawValue, forKey: Key.iconStyle.rawValue) }
+    }
+
     /// Where a drag left the panel's top-left, per display and relative to it.
     var palettePositions: [String: [Double]] {
         didSet { defaults.set(palettePositions, forKey: Key.palettePosition.rawValue) }
@@ -698,6 +702,14 @@ final class AppSettings {
         }
     }
 
+    var iCloudSyncOptedInCategories: Set<SyncCategory> {
+        didSet {
+            defaults.set(
+                iCloudSyncOptedInCategories.map(\.rawValue).sorted(),
+                forKey: Key.iCloudSyncOptedInCategories.rawValue)
+        }
+    }
+
     /// Rows a link from outside may run without asking; only `DeepLinkCoordinator` adds to it.
     var allowedDeepLinks: [String] {
         didSet { defaults.set(allowedDeepLinks, forKey: Key.allowedDeepLinks.rawValue) }
@@ -746,6 +758,7 @@ final class AppSettings {
         case .autoSwitchInputSource: adopt(\.autoSwitchInputSourceID, from: stored)
         case .paletteDraggable: adopt(\.paletteDraggable, from: stored)
         case .animationsEnabled: adopt(\.animationsEnabled, from: stored)
+        case .iconStyle: adopt(\.iconStyle, from: stored)
         case .palettePosition: adopt(\.palettePositions, from: stored)
         case .paletteExpandedCenterDisplays: adopt(\.paletteExpandedCenterDisplays, from: stored)
         case .fileSearchEnabled: adopt(\.fileSearchEnabled, from: stored)
@@ -818,6 +831,7 @@ final class AppSettings {
         case .settingsFileEnabled: adopt(\.settingsFileEnabled, from: stored)
         case .iCloudSyncEnabled: adopt(\.iCloudSyncEnabled, from: stored)
         case .iCloudSyncDisabledCategories: adopt(\.iCloudSyncDisabledCategories, from: stored)
+        case .iCloudSyncOptedInCategories: adopt(\.iCloudSyncOptedInCategories, from: stored)
         case .allowedDeepLinks: adopt(\.allowedDeepLinks, from: stored)
         // Read by the AI, Quick Actions and MCP stores, which reload themselves.
         case .aiInstalledProviders, .aiConnections, .aiDefaultModel, .aiWebSearch, .aiChoices,
@@ -929,6 +943,7 @@ final class AppSettings {
         animationsEnabled =
             defaults.object(forKey: Key.animationsEnabled.rawValue) == nil
             || defaults.bool(forKey: Key.animationsEnabled.rawValue)
+        iconStyle = defaults.string(forKey: Key.iconStyle.rawValue).flatMap(IconStyle.init) ?? .system
         palettePositions =
             defaults.dictionary(forKey: Key.palettePosition.rawValue)
             as? [String: [Double]] ?? [:]
@@ -1086,6 +1101,9 @@ final class AppSettings {
         iCloudSyncEnabled = defaults.bool(forKey: Key.iCloudSyncEnabled.rawValue)
         iCloudSyncDisabledCategories = Set(
             (defaults.stringArray(forKey: Key.iCloudSyncDisabledCategories.rawValue) ?? [])
+                .compactMap(SyncCategory.init(rawValue:)))
+        iCloudSyncOptedInCategories = Set(
+            (defaults.stringArray(forKey: Key.iCloudSyncOptedInCategories.rawValue) ?? [])
                 .compactMap(SyncCategory.init(rawValue:)))
         allowedDeepLinks = defaults.stringArray(forKey: Key.allowedDeepLinks.rawValue) ?? []
     }

@@ -125,6 +125,17 @@ a 2304×1296 one. It ignores the window's current size entirely, so it is idempo
 **Center Half** is half the screen's _area_: half width, full height, horizontally centred (the family
 sibling of Center Third). **Center Two Thirds** is the same shape at two thirds of the width.
 
+**Order-named tiles follow the screen's long side.** The thirds, two thirds, three fourths, Center
+Half and Center Two Thirds are named _first/center/last_, not by side, so on a display whose `frame`
+is taller than wide they stack top to bottom: First Third is the top row, Last Third pins its bottom
+edge. The axis reads `frame`, not `visibleFrame`, so a side or bottom Dock never flips it. Left,
+Right, Top and Bottom commands never turn, and a square display stays side by side. Next / Previous
+Display re-derive a remembered tile in the destination's orientation. `Placement.tile` names the tile
+a placement lands as, a re-derived display move included, and `WindowActionMemory` stores it, so a
+round trip between a landscape and a portrait display lands back on the same tile instead of a
+scaled, rotated copy. A move with Keep aspect ratio off keeps the window's points, so it lands as no
+tile and the next move scales it.
+
 An oversized or off-screen window is always clamped back onto the display; `clamped` pins the leading
 edge rather than shoving the window off the far side. Maximize Height and Maximize Width keep the
 untouched axis's position but clamp it, so a window sitting off the display doesn't come back
@@ -196,10 +207,10 @@ the window is still in it. `WindowMover` leaves `cycleTimeout` unset, so waiting
 **Cycling covers the four halves and Center Half only**, and `WindowCycle` picks one of three modes,
 `.off` by default so a repeat press stays idempotent unless asked otherwise:
 
-- **`.sizes`**: ½ → ⅓ → ⅔ in place. Top and Bottom Half cycle through _vertical_ thirds, which have no
-  commands of their own (the Thirds group is horizontal), so they are expressed as fractions rather
-  than as other command IDs. Center Half keeps its width centred, so its steps land on Center Third
-  and Center Two Thirds.
+- **`.sizes`**: ½ → ⅓ → ⅔ in place. Top and Bottom Half cycle through _vertical_ thirds, which the
+  Thirds group only produces on a portrait display, so they are expressed as fractions rather than
+  as other command IDs. Center Half stays centred on its axis, so its steps land on Center Third and
+  Center Two Thirds.
 - **`.displays`**: every display contributes two half-slots to one strip, ordered left-to-right by
   `ordered(_:)`. Left and Top walk it backwards, Right and Bottom forwards, both wrapping, so one
   shortcut sweeps the whole desktop in one direction: on two displays, Left Half gives
@@ -210,10 +221,10 @@ the window is still in it. `WindowMover` leaves `cycleTimeout` unset, so waiting
   Display's own single-display behaviour. Center Half hugs no edge, so it has no slot on the strip
   and stays put; Next Display already moves it.
 
-The two are deliberately exclusive rather than composable: a 12-press chain over two displays is not a
-shortcut any more, and Raycast's own setting is the same single choice. `Half` carries the (axis, edge)
-pair that makes both modes one expression: a slot's edge decides which side a ⅓ hugs, so the four
-halves are no longer four hand-written fraction cases.
+The two are deliberately exclusive rather than composable: a 12-press chain over two displays is not
+a shortcut any more. `Half` carries the (axis, edge) pair that makes both modes one expression: a
+slot's edge decides which side a ⅓ hugs, so the four halves are no longer four hand-written fraction
+cases.
 
 Growth is bounded three ways: an LRU cap of 64, an `NSWorkspace.didTerminateApplicationNotification`
 observer (the house `NotificationToken` RAII idiom) dropping a quit app's keys, and lazy invalidation
@@ -388,7 +399,6 @@ and every shortcut stays editable afterwards.
 - **Choose, then Apply.** The pop-up holds a choice that is never stored, and Apply stays disabled
   until one is made, and while `WindowShortcutPreset.matching` reports the chosen preset as fully
   set (other commands don't count), so one edited or cleared key re-enables it.
-- **No Raycast preset.** Raycast ships its window commands unbound, so there is nothing to fill in.
 
 ## Wiring
 

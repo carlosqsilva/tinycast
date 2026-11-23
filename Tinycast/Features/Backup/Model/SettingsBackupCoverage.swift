@@ -29,6 +29,7 @@ enum SettingsBackupCoverage {
         "openOnCursorScreen": .openOnCursorScreen,
         "paletteDraggable": .paletteDraggable,
         "animationsEnabled": .animationsEnabled,
+        "iconStyle": .iconStyle,
         "fileSearchEnabled": .fileSearchEnabled,
         "fileSearchScopes": .fileSearchScopes,
         "fileSearchIgnorePatterns": .fileSearchIgnorePatterns,
@@ -200,6 +201,8 @@ enum SettingsBackupCoverage {
         AppSettingsKey.iCloudSyncEnabled.rawValue:
             "Sends this Mac's data to iCloud; only the iCloud Sync pane may turn that on.",
         AppSettingsKey.iCloudSyncDisabledCategories.rawValue:
+            "Which categories sync is each Mac's own choice, made in its iCloud Sync pane.",
+        AppSettingsKey.iCloudSyncOptedInCategories.rawValue:
             "Which categories sync is each Mac's own choice, made in its iCloud Sync pane."
     ]
 }
